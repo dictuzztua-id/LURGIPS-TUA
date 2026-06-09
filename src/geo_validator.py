@@ -9,9 +9,11 @@ Masalah:
 - Data dari database adalah VARCHAR, bisa berisi "0", "0.0", NULL, "", dll
 
 Fungsi:
+- load_depo_coords(): Load koordinat depo dari JSON file
 - parse_coords(): Parse string koordinat ke float
 - flag_ghost_coords(): Tandai baris dengan koordinat tidak valid
 - clean_coords(): Shortcut parse + flag + filter
+- get_audit_report(): Generate laporan audit koordinat reject
 
 Dibuat sesuai aturan:
 - Rule #3: Kolom koordinat di sfa_doccallitem dan sfa_gpstracking bernama szLangitude (TYPO)
@@ -21,7 +23,56 @@ Dibuat sesuai aturan:
 
 import pandas as pd
 import numpy as np
-from typing import Tuple, Optional
+import json
+from pathlib import Path
+from typing import Tuple, Optional, Dict, Any
+
+# ── Module-level cache untuk depo coords ─────────────────────────────────
+_DEPO_COORDS_CACHE: Optional[Dict[str, Any]] = None
+
+
+def load_depo_coords() -> Dict[str, Any]:
+    """
+    Load koordinat depo dari file _agent_context/depo_coords.json.
+    
+    Input:
+        Tidak ada (file path hardcoded relative to BASE_DIR)
+    
+    Output:
+        dict: {"DEPO_CODE": {"lat": float, "lon": float, "name": str}, ...}
+    
+    Asumsi:
+        - File depo_coords.json ada di _agent_context/
+        - Format JSON adalah dict dengan key = kode depo (e.g., "343")
+    """
+    global _DEPO_COORDS_CACHE
+    
+    if _DEPO_COORDS_CACHE is not None:
+        return _DEPO_COORDS_CACHE
+    
+    # Try multiple paths for flexibility
+    possible_paths = [
+        Path(__file__).parent.parent / "_agent_context" / "depo_coords.json",
+        Path("_agent_context") / "depo_coords.json",
+        Path("LURGIP_MVP") / "_agent_context" / "depo_coords.json",
+    ]
+    
+    coords_file = None
+    for p in possible_paths:
+        if p.exists():
+            coords_file = p
+            break
+    
+    if coords_file is None:
+        raise FileNotFoundError(
+            "depo_coords.json not found. Please create it in _agent_context/ folder."
+        )
+    
+    with open(coords_file, 'r', encoding='utf-8') as f:
+        _DEPO_COORDS_CACHE = json.load(f)
+    
+    print(f"📍 Loaded {len(_DEPO_COORDS_CACHE)} depot coordinates from {coords_file}")
+    return _DEPO_COORDS_CACHE
 
 
 # ── Bounding Box Jawa Barat (operasi TUA) ─────────────────────────────────
@@ -29,21 +80,8 @@ from typing import Tuple, Optional
 LAT_MIN, LAT_MAX = -8.0, -5.8
 LON_MIN, LON_MAX = 106.0, 109.0
 
-
-# ── Koordinat resmi tiap depo (dari file depo_coords.json) ───────────────
-# Dipakai untuk deteksi "checkin dari kantor depo"
-DEPO_COORDS = {
-    "PADALARANG": (-6.843, 107.543),
-    "KATAPANG": (-7.033, 107.569),
-    "METRO": (-6.917, 107.619),
-    "CICALENGKA": (-7.006, 107.840),
-    "SOREANG": (-7.032, 107.519),
-    "LEMBANG": (-6.812, 107.617),
-    "SADAKELING": (-6.893, 107.590),
-    "SUMEDANG": (-6.857, 107.921),
-    "SUBANG": (-6.564, 107.759),
-    "MAJALAYA": (-7.051, 107.752),
-}
+# Legacy DEPO_COORDS (deprecated - use load_depo_coords() instead)
+DEPO_COORDS = {}  # Will be populated on first load_depo_coords() call
 
 # Radius toleransi "masih di depo" dalam derajat (≈ 200 meter)
 DEPO_RADIUS_DEG = 0.002
@@ -217,8 +255,67 @@ def clean_coords(
     return result
 
 
+def get_audit_report(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Generate laporan audit untuk koordinat yang ditolak (tidak valid).
+    
+    Fungsi ini mengambil DataFrame yang sudah melalui flag_ghost_coords()
+    dan mengembalikan hanya baris dengan _coord_valid=False, dilengkapi
+    dengan kolom rejection_reason yang human-readable.
+    
+    Input:
+        df: DataFrame yang sudah melalui flag_ghost_coords() 
+            (memiliki kolom _flag_null_coord, _flag_out_of_area, _flag_at_depo, _coord_valid)
+    
+    Output:
+        DataFrame dengan baris koordinat tidak valid saja, plus kolom:
+        - rejection_reason: Penjelasan mengapa koordinat ditolak
+    
+    Asumsi:
+        - DataFrame sudah memiliki kolom flag dari flag_ghost_coords()
+        - Ingin membuat laporan audit untuk salesman dengan GPS bermasalah
+    """
+    if "_coord_valid" not in df.columns:
+        raise ValueError(
+            "DataFrame must have _coord_valid column. "
+            "Run flag_ghost_coords() first."
+        )
+    
+    # Filter hanya baris invalid
+    audit_df = df[~df["_coord_valid"]].copy()
+    
+    if len(audit_df) == 0:
+        print("✅ No invalid coordinates found - all data is valid!")
+        return audit_df
+    
+    # Generate rejection reason
+    def get_reason(row):
+        reasons = []
+        if row.get("_flag_null_coord", False):
+            reasons.append("Null/Zero coordinates")
+        if row.get("_flag_out_of_area", False):
+            reasons.append("Outside operational area (Jawa Barat)")
+        if row.get("_flag_at_depo", False):
+            reasons.append("Check-in from depot area (GPS spoofing)")
+        return "; ".join(reasons) if reasons else "Unknown reason"
+    
+    audit_df["rejection_reason"] = audit_df.apply(get_reason, axis=1)
+    
+    # Summary
+    n_null = audit_df["_flag_null_coord"].sum() if "_flag_null_coord" in audit_df.columns else 0
+    n_area = audit_df["_flag_out_of_area"].sum() if "_flag_out_of_area" in audit_df.columns else 0
+    n_depo = audit_df["_flag_at_depo"].sum() if "_flag_at_depo" in audit_df.columns else 0
+    
+    print(f"🚨 Audit Report: {len(audit_df):,} invalid coordinates found")
+    print(f"   ⚠️ Null/Zero: {n_null:,}")
+    print(f"   🗺️ Out of Area: {n_area:,}")
+    print(f"   🏢 At Depot (spoofing): {n_depo:,}")
+    
+    return audit_df
+
+
 # ── Penggunaan di notebook ─────────────────────────────────────────────────
-# from src.geo_validator import clean_coords, flag_ghost_coords
+# from src.geo_validator import clean_coords, flag_ghost_coords, get_audit_report
 #
 # # Untuk peta: filter langsung
 # df_visit_clean = clean_coords(df_visits)
@@ -227,3 +324,6 @@ def clean_coords(
 # df_audit = flag_ghost_coords(parse_coords(df_visits))
 # ghost_checkins = df_audit[df_audit["_flag_at_depo"]]
 # print(f"Terdeteksi {len(ghost_checkins)} checkin dari area depo")
+#
+# # Generate full audit report
+# report = get_audit_report(df_audit)

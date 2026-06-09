@@ -1,47 +1,8 @@
-```
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.venv.*
-.ENV
-.env.*
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-
-# Testing
-.coverage
-htmlcov/
-.pytest_cache/
-.mypy_cache/
-
-# Logs
-*.log
-
-# Environment specific
-.env
-.env.local
-.env.*
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
-
-# Dependencies
-node_modules/
+```json
+{
+  "error": {
+    "type": "llm_call_failed",
+    "message": "{\"message\":\"Operation not allowed\"}\n"
+  }
+}
 ```
