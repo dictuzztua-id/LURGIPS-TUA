@@ -24,10 +24,17 @@ import pyarrow as pa
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
-from .config import (
-    DB_CONFIGS, DATA_DIR, PORT_NAMESPACE, ID_COLUMNS,
-    DEPO_TO_PORT, REF_DIR
-)
+# Import config - support both package and direct import
+try:
+    from .config import (
+        DB_CONFIGS, DATA_DIR, PORT_NAMESPACE, ID_COLUMNS,
+        DEPO_TO_PORT, REF_DIR
+    )
+except ImportError:
+    from config import (
+        DB_CONFIGS, DATA_DIR, PORT_NAMESPACE, ID_COLUMNS,
+        DEPO_TO_PORT, REF_DIR
+    )
 
 
 def get_connection(port_key: str = "port_3306") -> pymysql.Connection:
