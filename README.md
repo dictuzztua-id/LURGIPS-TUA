@@ -1,44 +1,50 @@
 # LURGIP MVP
 
-**Local Unified Route & GPS Intelligence Platform**
+**Platform Analitik Distribusi FMCG** berbasis Jupyter Notebook untuk laptop lokal.
 
-Platform analitik distribusi FMCG berbasis Jupyter Notebook untuk laptop lokal.
+## 📋 Deskripsi
 
----
+LURGIP MVP adalah sistem analitik untuk memantau distribusi FMCG (Fast Moving Consumer Goods) dengan fitur:
+
+1. **Ghost Outlet Detection** - Deteksi outlet yang tidak aktif >90 hari
+2. **Route Compliance** - Bandingkan kunjungan aktual vs rencana
+3. **Visit Duration Analysis** - Analisis durasi kunjungan salesman
+4. **Sales Performance** - Performa penjualan per outlet
+5. **Churn Risk Detection** - Identifikasi outlet berisiko berhenti
+6. **Prospect Potential Scoring** - Skor potensi prospek baru
+
+## 🏗️ Arsitektur Database
+
+- **MySQL Multi-Port**: 3 port berbeda (3306, 3307, 3308)
+- **DMS + SFA**: Data dari Distribution Management System dan Sales Force Automation
+- **Namespace Port**: Prefix P1/P2/P3 untuk menghindari collision ID
 
 ## 📁 Struktur Folder
 
 ```
 LURGIP_MVP/
-│
-├── src/                          # Modul Python reusable
-│   ├── config.py                 ← Konfigurasi DB & konstanta (EDIT INI!)
-│   ├── db.py                     ← Koneksi & query helper
-│   ├── analysis.py               ← Fungsi analitik 5 metrik
-│   ├── geo_validator.py          ← Validasi koordinat GPS (Patch 1)
-│   └── __init__.py
-│
-├── notebooks/                    # Jupyter notebooks (jantung aplikasi)
+├── data/
+│   ├── raw/              # Cache Parquet (auto-generated)
+│   ├── reference/        # File Excel manual upload
+│   └── output/           # Hasil export
+├── src/
+│   ├── config.py         # Konfigurasi DB & konstanta
+│   ├── db.py             # Koneksi & query helper
+│   ├── geo_validator.py  # Validasi koordinat GPS
+│   ├── datetime_utils.py # Normalisasi timezone
+│   ├── analysis.py       # 5 metrik analitik
+│   ├── maps.py           # Builder peta Folium
+│   └── export.py         # Export laporan
+├── notebooks/
 │   ├── 00_setup_config.ipynb
 │   ├── 01_extract_data.ipynb
 │   ├── 02_analysis.ipynb
 │   ├── 03_map_visualization.ipynb
 │   └── 04_export_report.ipynb
-│
-├── data/
-│   ├── raw/                      ← Cache Parquet (auto-generated, jangan di-commit)
-│   ├── reference/                ← File statis manual upload
-│   │   ├── MASTER_OUTLET_AQUA.xlsx
-│   │   ├── RUTE_ALL.xlsx
-│   │   └── depo_coords.json
-│   └── output/                   ← Hasil akhir Excel & HTML
-│
 ├── requirements.txt
-├── .gitignore
+├── run_all.py
 └── README.md
 ```
-
----
 
 ## 🚀 Quick Start
 
@@ -55,75 +61,75 @@ Edit `src/config.py` dan isi kredensial database Anda:
 ```python
 DB_CONFIGS = {
     "port_3306": {
-        "host": "localhost",
+        "host": "your_host",
         "port": 3306,
-        "user": "root",           # ← GANTI
-        "password": "your_pass",  # ← GANTI
-        "database": "tua_db",     # ← GANTI
-        "charset": "utf8mb4"
+        "user": "your_user",
+        "password": "your_pass",
+        "database": "dms"
     },
-    # ... port 3307, 3308
+    # ... port 3307 dan 3308
 }
 ```
 
 ### 3. Copy Reference Data
 
+Copy file berikut ke `data/reference/`:
+- `MASTER OUTLET AQUA.xlsx`
+- `RUTE ALL.xlsx`
+- `depo_coords.json` (template ada di `_agent_context/`)
+
+### 4. Jalankan Pipeline
+
+**Opsi A: Jalankan semua sekaligus**
 ```bash
-cp "MASTER OUTLET AQUA.xlsx" data/reference/
-cp "RUTE ALL.xlsx" data/reference/
-# Update depo_coords.json dengan koordinat depo Anda
+python run_all.py
 ```
 
-### 4. Jalankan Notebook
-
-Buka Jupyter dan jalankan notebook secara berurutan:
-
-```
-notebooks/00_setup_config.ipynb    ← Konfigurasi awal
-notebooks/01_extract_data.ipynb    ← Extract & cache data
-notebooks/02_analysis.ipynb        ← Analisis 5 metrik
-notebooks/03_map_visualization.ipynb ← Peta Leaflet
-notebooks/04_export_report.ipynb   ← Export Excel final
+**Opsi B: Jalankan notebook satu per satu**
+```bash
+jupyter notebook
+# Buka dan jalankan notebook berurutan dari 00 sampai 04
 ```
 
----
+## 📊 Output
 
-## 📊 5 Metrik LURGIP
+Setelah pipeline selesai, Anda akan mendapat:
 
-1. **Ghost Outlet** — Outlet aktif tanpa transaksi > 90 hari
-2. **Route Compliance** — Kepatuhan kunjungan vs rencana rute
-3. **Visit Duration** — Durasi kunjungan salesman (dalam DETIK)
-4. **Sales Performance** — Penjualan per outlet + churn risk
-5. **Prospect Potential** — Skor potensi prospek (weighted score)
-
----
+- **Parquet files** di `data/raw/` (cache data mentah)
+- **Analysis CSV** di `data/output/` (hasil metrik)
+- **Interactive Maps** (5 file HTML)
+- **Excel Report** (multiple sheets)
+- **Executive Summary** (text report)
 
 ## ⚠️ Aturan Penting
 
-1. **Schema Database** — Semua nama kolom merujuk ke `3306.csv`. DILARANG mengarang!
-2. **szLangitude TYPO** — Kolom koordinat di `sfa_doccallitem` dan `sfa_gpstracking` bernama `szLangitude` (dengan typo). Jangan dibetulkan!
-3. **szLatitude** — Kolom koordinat di `dms_sm_addressinfo` bernama `szLatitude` (tanpa typo).
-4. **decDuration** — Adalah **DETIK** (integer), bukan menit!
-5. **Datetime SFA** — Harus melalui `normalize_all_datetimes()` sebelum digunakan.
-6. **Namespace Port** — Setiap DataFrame dari multi-port HARUS melalui `add_port_namespace()`.
-7. **Jangan Commit Kredensial** — `src/config.py` sudah di `.gitignore`.
-8. **Idempotent** — Setiap notebook bisa dijalankan ulang dari awal.
+1. **Jangan commit kredensial** - `src/config.py` sudah di `.gitignore`
+2. **Schema database adalah truth** - Semua nama kolom harus match dengan `SCHEMA_PORT_3306.csv`
+3. **Typo koordinat** - Kolom `szLangitude` (TYPO) di tabel SFA, `szLatitude` di DMS
+4. **decDuration dalam DETIK** - Bukan menit!
+5. **Normalisasi datetime** - Selalu gunakan `normalize_all_datetimes()` untuk data SFA
+6. **Namespace port wajib** - Gunakan `add_port_namespace()` sebelum simpan ke Parquet
 
----
+## 📖 Dokumentasi Lengkap
 
-## 📝 Patch Notes
+- `LURGIP_MVP_Blueprint.md` - Blueprint lengkap sistem
+- `LURGIP_Patches_and_Roadmap.md` - Patch dan roadmap development
+- `LURGIP_Agent_Instructions.md` - Instruksi untuk AI agent
 
-- **Patch 1**: Filter koordinat hantu (GPS spoofing / indoor)
-- **Patch 2**: Namespace port untuk menghindari collision ID
-- **Patch 3**: Weighted score untuk prospek (hindari bias satuan)
-- **Patch 4**: Normalisasi timezone datetime SFA → WIB
+## 🛠️ Troubleshooting
 
----
+### Error koneksi database
+- Pastikan host, port, user, password benar di `src/config.py`
+- Cek koneksi network ke server MySQL
 
-## 📄 License
+### Error schema kolom
+- Verifikasi nama kolom di database match dengan kode
+- Gunakan `00_setup_config.ipynb` untuk cek schema
 
-Internal use only — PT Tirta Ungu Abadi
+### Error koordinat
+- Pastikan kolom `szLangitude` dan `szLongitude` ada di data
+- Gunakan `clean_coords()` untuk filter koordinat invalid
 
----
+## 👥 Tim Development
 
-Dibuat sesuai LURGIP_MVP_Blueprint.md dan LURGIP_Patches_and_Roadmap.md
+Dibuat sesuai spesifikasi LURGIP MVP Blueprint v1.0

@@ -1,34 +1,47 @@
 ```
-# Dependencies
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.Python
+env/
+venv/
+.venv/
+.venv.*
+.ENV
+.env.*
 
-# Jupyter notebooks
-.ipynb_checkpoints/
-nbproject/
+# Build artifacts
+build/
+dist/
+*.egg-info/
 
-# Logs and temp files
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Logs
 *.log
-*.tmp
 
-# Environment
+# Environment specific
 .env
 .env.local
-*.env.*
+.env.*
 
-# Editors
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*.tmp
 
-# Coverage reports
-.coverage
-coverage/
-htmlcov/
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
+# Dependencies
+node_modules/
 ```
