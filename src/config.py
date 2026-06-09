@@ -11,28 +11,29 @@ Dibuat sesuai aturan:
 
 # ── KONFIGURASI DATABASE (EDIT SESUAI ENVIRONMENT KAMU) ─────────────────────
 # Port 3306, 3307, 3308 sesuai arsitektur multi-depo
+# CATATAN: Jangan commit nilai sensitif ke Git!
 DB_CONFIGS = {
     "port_3306": {
-        "host": "103.85.65.185",
+        "host": "localhost",      # Ganti dengan host Anda
         "port": 3306,
-        "user": "reporting",
-        "password": "reporting@2025!!",
+        "user": "your_user",      # Ganti dengan user Anda
+        "password": "your_pass",  # Ganti dengan password Anda
         "database": "dms",
         "charset": "utf8mb4"
     },
     "port_3307": {
-        "host": "103.85.65.185",
+        "host": "localhost",
         "port": 3307,
-        "user": "reporting",
-        "password": "reporting@2025!!",
+        "user": "your_user",
+        "password": "your_pass",
         "database": "dms",
         "charset": "utf8mb4"
     },
     "port_3308": {
-        "host": "103.85.65.185",
+        "host": "localhost",
         "port": 3308,
-        "user": "reporting",
-        "password": "reporting@2025!!",
+        "user": "your_user",
+        "password": "your_pass",
         "database": "dms",
         "charset": "utf8mb4"
     },
