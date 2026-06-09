@@ -4,35 +4,31 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.venv/
-venv/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+nbproject/
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
 .env
 .env.local
 *.env.*
 
-# Build artifacts
-dist/
-build/
-*.egg-info/
+# Editors
+.vscode/
+.idea/
 
-# Testing
+# Coverage reports
 .coverage
 coverage/
 htmlcov/
-.pytest_cache/
-.mypy_cache/
 
-# Logs
-*.log
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
 ```

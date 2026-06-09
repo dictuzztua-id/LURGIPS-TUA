@@ -13,27 +13,27 @@ Dibuat sesuai aturan:
 # Port 3306, 3307, 3308 sesuai arsitektur multi-depo
 DB_CONFIGS = {
     "port_3306": {
-        "host": "localhost",
+        "host": "103.85.65.185",
         "port": 3306,
-        "user": "root",           # ← GANTI dengan user Anda
-        "password": "",           # ← GANTI dengan password Anda
-        "database": "tua_db",     # ← GANTI dengan nama database Anda
+        "user": "reporting",
+        "password": "reporting@2025!!",
+        "database": "dms",
         "charset": "utf8mb4"
     },
     "port_3307": {
-        "host": "localhost",
+        "host": "103.85.65.185",
         "port": 3307,
-        "user": "root",
-        "password": "",
-        "database": "tua_db",
+        "user": "reporting",
+        "password": "reporting@2025!!",
+        "database": "dms",
         "charset": "utf8mb4"
     },
     "port_3308": {
-        "host": "localhost",
+        "host": "103.85.65.185",
         "port": 3308,
-        "user": "root",
-        "password": "",
-        "database": "tua_db",
+        "user": "reporting",
+        "password": "reporting@2025!!",
+        "database": "dms",
         "charset": "utf8mb4"
     },
 }
