@@ -1,8 +1,1 @@
-```json
-{
-  "error": {
-    "type": "llm_call_failed",
-    "message": "{\"message\":\"Operation not allowed\"}\n"
-  }
-}
-```
+Nothing to output - the change list contains only a markdown file (PANDUAN_PENGGUNAAN.md) which is a source/config file, and there are no build artifacts, dependencies, or temp files to ignore.
