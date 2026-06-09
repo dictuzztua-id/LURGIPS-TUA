@@ -1,0 +1,54 @@
+# LURGIP MVP — Cursor Rules
+# Baca ini sebelum menulis satu baris kode apapun.
+
+## Identitas Project
+Kamu membangun LURGIP MVP: sistem analitik distribusi FMCG berbasis Jupyter Notebook.
+Database: MySQL (DMS + SFA) di 3 port (3306, 3307, 3308).
+Semua referensi teknis ada di _agent_context/.
+
+## Aturan Nama Kolom (TIDAK BOLEH DILANGGAR)
+- sfa_doccallitem.szLangitude  ← TYPO intentional, ini adalah LATITUDE
+- sfa_gpstracking.szLangitude  ← TYPO intentional, ini adalah LATITUDE
+- dms_sm_branch.szLangitude    ← TYPO intentional, ini adalah LATITUDE
+- sfa_prospect.szLangitude     ← TYPO intentional, ini adalah LATITUDE
+- dms_sm_addressinfo.szLatitude ← INI TANPA TYPO (berbeda dari tabel lain)
+- decDuration di sfa_doccallitem = DETIK (integer), bukan menit
+  Konversi: duration_menit = decDuration / 60
+
+## Aturan Datetime
+- JANGAN pakai datetime.now() atau pd.Timestamp.now()
+- SELALU pakai today_wib() dari src/datetime_utils.py
+- Data dari tabel sfa_* HARUS melalui normalize_all_datetimes(source_hint="sfa")
+- Data dari tabel dms_* HARUS melalui normalize_all_datetimes(source_hint="dms")
+
+## Aturan Multi-Port ID
+- Setelah query dari database, LANGSUNG apply add_port_namespace() sebelum apapun
+- Format namespace: "P1::343-0001234" (separator double colon)
+- Port mapping: 3306=P1, 3307=P2, 3308=P3
+- ID dari file Excel: pakai resolve_excel_id() sebelum join
+
+## Aturan Koordinat GPS
+- SELALU parse dengan parse_coords() dari src/geo_validator.py dulu
+- Hasil parse ada di kolom _lat dan _lon (bukan kolom original)
+- SELALU flag dengan flag_ghost_coords() sebelum visualisasi
+- Untuk peta dan heatmap: filter df[df["_coord_valid"]==True]
+- Untuk laporan audit: gunakan semua baris + flag
+
+## Aturan File
+- src/config.py ada di .gitignore — jangan pernah hardcode credentials
+- Semua output ke data/output/, semua cache ke data/raw/
+- Setiap notebook harus idempotent (bisa dijalankan ulang dari awal)
+- Jangan buat file baru di luar struktur folder yang sudah ditentukan
+
+## Aturan Kode
+- Setiap fungsi WAJIB punya docstring: deskripsi, parameter, return, contoh
+- Setiap fungsi harus handle empty DataFrame (jangan crash)
+- Log semua operasi penting dengan print() yang informatif (pakai emoji ✅⚠️❌)
+- Kalau tidak yakin nama kolom → cek _agent_context/SCHEMA_PORT_3306.csv DULU
+
+## Sumber Kebenaran
+_agent_context/LURGIP_Agent_Instructions.md  ← dokumen utama ini
+_agent_context/LURGIP_MVP_BLUEPRINT.md        ← arsitektur lengkap
+_agent_context/LURGIP_PATCHES_AND_ROADMAP.md  ← patches dan roadmap
+_agent_context/SCHEMA_PORT_3306.csv           ← schema database ground truth
+_agent_context/depo_coords.json               ← koordinat depo
